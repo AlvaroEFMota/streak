@@ -1,0 +1,25 @@
+ conn.execute(
+        "CREATE TABLE IF NOT EXISTS user (
+            email TEXT PRIMARY KEY
+        )",
+        (), // empty list of parameters.
+    )?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_fk TEXT NOT NULL,
+            name TEXT NOT NULL,
+            accumulative INTEGER NOT NULL,
+            streak INTEGER NOT NULL,
+            last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (host_id) REFERENCES host (id)
+            UNIQUE (user_email, name)
+        )",
+        (), // empty list of parameters.
+    )?;
+
+
+curl -i 127.0.0.1:8080/user -H 'Content-Type: application/json' -d '{"email": "any@any.com"}'
+curl -i 127.0.0.1:8080/activity -H 'Content-Type: application/json' -d '{"user_email": "any@any.com", "name": "trab"}'
+
+
