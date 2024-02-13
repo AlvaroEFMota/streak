@@ -1,24 +1,27 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{post, put, web, App, HttpResponse, HttpServer, Responder};
 
 mod database;
 
-use database::{get_database, Activity, User};
+use database::{get_database, ActivityCreate, UserCreate};
 
 // type Error = Box<dyn std::error::Error>;
 // type Result<T> = std::result::Result<T, Error>;
 
 #[post("/user")]
-async fn add_user(req: web::Json<User>) -> impl Responder {
+async fn add_user(req: web::Json<UserCreate>) -> impl Responder {
     let db_locked = get_database();
     let db_unlocked = db_locked.lock().unwrap();
-    let user = req.into_inner();
-    db_unlocked.insert_user(&user).unwrap();
+    let user_create = req.into_inner();
+    db_unlocked.insert_user(&user_create).unwrap();
 
-    HttpResponse::Ok().body(format!("received {:?}!", user))
+    HttpResponse::Ok().body(format!("received {:?}!", user_create))
 }
 
+// #[put("/user")]
+// async fn update_user(req: web)
+
 #[post("/activity")]
-async fn add_activity(req: web::Json<Activity>) -> impl Responder {
+async fn add_activity(req: web::Json<ActivityCreate>) -> impl Responder {
     let db_locked = get_database();
     let db_unlocked = db_locked.lock().unwrap();
     let activity = req.into_inner();

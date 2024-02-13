@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use rusqlite::Connection;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 
 type Error = Box<dyn std::error::Error>;
@@ -11,51 +11,44 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct User {
+pub struct UserCreate {
     pub email: String,
 }
 
-#[derive(Debug)]
-pub struct Activity {
-    pub id: Option<i64>,
+// #[derive(Deserialize, Debug)]
+
+// pub struct Activity {
+//     pub id: Option<i64>,
+//     pub user_email: String,
+//     pub name: String,
+//     pub accumulative: i64,
+//     pub streak: i64,
+//     pub last_update: NaiveDateTime,
+// }
+
+#[derive(Deserialize, Debug)]
+pub struct ActivityCreate {
     pub user_email: String,
     pub name: String,
-    pub accumulative: i64,
-    pub streak: i64,
-    pub last_update: NaiveDateTime,
 }
 
-impl Activity {
-    fn new(user_email: String, name: String) -> Self {
-        Activity {
-            id: None,
-            user_email,
-            name,
-            accumulative: 0,
-            streak: 0,
-            last_update: Utc::now().naive_utc(),
-        }
-    }
+#[derive(Deserialize, Debug)]
+pub struct ActivityUpdate {
+    pub duration: i64,
 }
 
-impl<'de> Deserialize<'de> for Activity {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct ActivityDeserialize {
-            user_email: String,
-            name: String,
-        }
-
-        let activity_deserealize = ActivityDeserialize::deserialize(deserializer)?;
-        Ok(Activity::new(
-            activity_deserealize.user_email,
-            activity_deserealize.name,
-        ))
-    }
-}
+// impl Activity {
+//     fn new(user_email: String, name: String) -> Self {
+//         Activity {
+//             id: None,
+//             user_email,
+//             name,
+//             accumulative: 0,
+//             streak: 0,
+//             last_update: Utc::now().naive_utc(),
+//         }
+//     }
+// }
 
 pub struct Database {
     pub connection: Connection,
@@ -98,14 +91,14 @@ impl Database {
             .unwrap();
     }
 
-    pub fn insert_user(&self, user: &User) -> Result<()> {
+    pub fn insert_user(&self, user: &UserCreate) -> Result<()> {
         self.connection
             .execute("INSERT INTO user (email) VALUES (?1)", [user.email.clone()])?;
         Ok(())
     }
 
-    pub fn insert_activity(&self, activity: &Activity) -> Result<()> {
-        self.connection.execute("INSERT INTO activity (user_email, name, accumulative, streak, last_update) VALUES (?1, ?2, ?3, ?4, ?5)", [activity.user_email.clone(), activity.name.clone(), activity.accumulative.to_string(), activity.streak.to_string(), activity.last_update.to_string()])?;
+    pub fn insert_activity(&self, activity_create: &ActivityCreate) -> Result<()> {
+        self.connection.execute("INSERT INTO activity (user_email, name, accumulative, streak, last_update) VALUES (?1, ?2, ?3, ?4, ?5)", [activity_create.user_email.clone(), activity_create.name.clone(), "0".to_string(), "0".to_string(), Utc::now().naive_utc().to_string()])?;
         Ok(())
     }
 }
