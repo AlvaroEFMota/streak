@@ -50,7 +50,10 @@ impl<'de> Deserialize<'de> for Activity {
         }
 
         let activity_deserealize = ActivityDeserialize::deserialize(deserializer)?;
-        Ok(Activity::new(activity_deserealize.user_email, activity_deserealize.name))
+        Ok(Activity::new(
+            activity_deserealize.user_email,
+            activity_deserealize.name,
+        ))
     }
 }
 
@@ -68,6 +71,7 @@ impl Database {
         self.connection
             .execute("PRAGMA foreign_keys = ON", ())
             .unwrap();
+
         self.connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS user (
@@ -76,6 +80,7 @@ impl Database {
                 (),
             )
             .unwrap();
+
         self.connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS activity (

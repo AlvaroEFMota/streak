@@ -20,6 +20,6 @@
 
 
 curl -i 127.0.0.1:8080/user -H 'Content-Type: application/json' -d '{"email": "any@any.com"}'
-curl -i 127.0.0.1:8080/activity -H 'Content-Type: application/json' -d '{"user_email": "any@any.com", "name": "trab"}'
+curl -i 127.0.0.1:8080/activity -H 'Content-Type: application/json' -d '{"user_email": "any@any.com", "name": "activity name"}'
 
 
