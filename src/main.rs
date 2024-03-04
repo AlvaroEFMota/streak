@@ -1,8 +1,10 @@
-use actix_web::{post, put, web, App, HttpResponse, HttpServer, Responder};
+use std::fmt::format;
 
+use actix_web::{post, put, web, App, HttpResponse, HttpServer, Responder, get};
+// put is used to update or create a new resource
 mod database;
 
-use database::{get_database, ActivityCreate, UserCreate};
+use database::{get_database, ActivityCreate, ActivityUpdate, UserCreate};
 
 // type Error = Box<dyn std::error::Error>;
 // type Result<T> = std::result::Result<T, Error>;
@@ -29,6 +31,23 @@ async fn add_activity(req: web::Json<ActivityCreate>) -> impl Responder {
 
     HttpResponse::Ok().body(format!("received {:?}!", activity))
     // HttpResponse::Ok().body("Received activity!".to_string())
+}
+
+#[put("/activity")]
+async fn update_activity(req: web::Json<ActivityUpdate>) -> impl Responder {
+    let db_locked = get_database();
+    let db_unlocked = db_locked.lock().unwrap();
+    db_unlocked.update_activity(&req.into_inner());
+
+    HttpResponse::Ok().body(format!("received!"))
+}
+
+#[get("/activity")]
+async fn get_activity(req: web::Json<i64>) -> impl Responder {
+    let db_locked = get_database();
+    let db_unlocked = db_locked.lock().unwrap();
+    let activity = db_unlocked.get_activity(req.into_inner());
+    HttpResponse::Ok().body(format!("Activity: {:?}", activity))
 }
 
 #[actix_web::main]
