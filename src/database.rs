@@ -1,11 +1,9 @@
-use actix_web::body::BoxBody;
-use actix_web::Responder;
+//use actix_web::body::BoxBod
+//use actix_web::Responder;
 use chrono::{NaiveDateTime, Utc};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use std::{sync::{Arc, Mutex}, io::Stderr, str::FromStr};
-
-use crate::update_activity;
+use std::sync::{Arc, Mutex};
 
 type Error = Box<dyn std::error::Error>;
 type Result<T> = std::result::Result<T, Error>;
@@ -21,7 +19,7 @@ pub struct UserCreate {
 
 #[derive(Serialize, Debug)]
 pub struct Activity {
-    pub id: i64,
+    pub id: u64,
     pub user_email: String,
     pub name: String,
     pub accumulative: i64,
@@ -93,14 +91,13 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_activity(&self, id: i64) -> std::result::Result<Activity, rusqlite::Error> {
+    pub fn get_activity(&self, id: u64) -> std::result::Result<Activity, rusqlite::Error> {
         let activity = self.connection.query_row(
             "SELECT id, user_email, name, accumulative, streak, last_update FROM activity WHERE id = ?",
             [id],
             |row| {
-                println!("{:?}", row.get::<usize, i64>(5)?);
-                let last_update_timestamp: i64 = row.get(5)?; // Supondo que o valor retornado seja um timestamp UNIX
-                let last_update = NaiveDateTime::from_timestamp_opt(last_update_timestamp, 0).unwrap();
+                let last_update_str: String = row.get(5)?;
+                let last_update = NaiveDateTime::parse_from_str(&last_update_str, "%Y-%m-%d %H:%M:%S.%f").unwrap();
 
                 Ok(Activity {
                 id: row.get(0)?,
@@ -116,12 +113,12 @@ impl Database {
         //Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Custom Error")))
     }
 
-    pub fn update_activity(&self, activity_update: &ActivityUpdate) -> Result<()> {
+    //pub fn update_activity(&self, activity_update: &ActivityUpdate) -> Result<()> {
         // get activity
         // find new values
         //self.connection.execute("UPDATE activity SET accumulative = ?, streak = ?, last_update = ? WHERE id = ?", [1,2])?;
-        Ok(())
-    }
+        //Ok(())
+    //}
 }
 
 pub fn get_database() -> Arc<Mutex<Database>> {

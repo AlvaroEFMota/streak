@@ -1,10 +1,8 @@
-use std::fmt::format;
-
-use actix_web::{post, put, web, App, HttpResponse, HttpServer, Responder, get};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, get};
 // put is used to update or create a new resource
 mod database;
 
-use database::{get_database, ActivityCreate, ActivityUpdate, UserCreate};
+use database::{get_database, ActivityCreate, UserCreate};
 
 // type Error = Box<dyn std::error::Error>;
 // type Result<T> = std::result::Result<T, Error>;
@@ -33,20 +31,21 @@ async fn add_activity(req: web::Json<ActivityCreate>) -> impl Responder {
     // HttpResponse::Ok().body("Received activity!".to_string())
 }
 
-#[put("/activity")]
-async fn update_activity(req: web::Json<ActivityUpdate>) -> impl Responder {
+//#[put("/activity")]
+//async fn update_activity(req: web::Json<ActivityUpdate>) -> impl Responder {
+    //let db_locked = get_database();
+    //let db_unlocked = db_locked.lock().unwrap();
+    //let _ = db_unlocked.update_activity(&req.into_inner());
+
+    //HttpResponse::Ok().body(format!("received!"))
+//}
+
+#[get("/activity/{id}")]
+async fn get_activity(id: web::Path<u64>) -> impl Responder {
+    println!("getting activity");
     let db_locked = get_database();
     let db_unlocked = db_locked.lock().unwrap();
-    db_unlocked.update_activity(&req.into_inner());
-
-    HttpResponse::Ok().body(format!("received!"))
-}
-
-#[get("/activity")]
-async fn get_activity(req: web::Json<i64>) -> impl Responder {
-    let db_locked = get_database();
-    let db_unlocked = db_locked.lock().unwrap();
-    let activity = db_unlocked.get_activity(req.into_inner());
+    let activity = db_unlocked.get_activity(*id);
     HttpResponse::Ok().body(format!("Activity: {:?}", activity))
 }
 
@@ -68,6 +67,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(add_user)
             .service(add_activity)
+            .service(get_activity)
             .app_data(web::JsonConfig::default())
     })
     .bind(("127.0.0.1", 8080))?
