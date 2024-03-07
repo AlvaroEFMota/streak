@@ -1,6 +1,6 @@
 //use actix_web::body::BoxBod
 //use actix_web::Responder;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{Duration, NaiveDateTime, Utc};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -22,8 +22,8 @@ pub struct Activity {
     pub id: u64,
     pub user_email: String,
     pub name: String,
-    pub accumulative: i64,
-    pub streak: i64,
+    pub accumulative: u64,
+    pub streak: u64,
     pub last_update: NaiveDateTime,
 }
 
@@ -35,8 +35,8 @@ pub struct ActivityCreate {
 
 #[derive(Deserialize, Debug)]
 pub struct ActivityUpdate {
-    pub id: i64,
-    pub duration: i64,
+    pub id: u64,
+    pub duration: u64,
 }
 
 pub struct Database {
@@ -87,7 +87,15 @@ impl Database {
     }
 
     pub fn insert_activity(&self, activity_create: &ActivityCreate) -> Result<()> {
-        self.connection.execute("INSERT INTO activity (user_email, name, accumulative, streak, last_update) VALUES (?1, ?2, ?3, ?4, ?5)", [activity_create.user_email.clone(), activity_create.name.clone(), "0".to_string(), "0".to_string(), Utc::now().naive_utc().to_string()])?;
+        let last_update = Utc::now().naive_utc().timestamp().to_string();
+
+        self.connection.execute(
+            "INSERT INTO activity (user_email, name, accumulative, streak, last_update) VALUES (?1, ?2, ?3, ?4, ?5)",
+            [activity_create.user_email.clone(),
+            activity_create.name.clone(),
+            "0".to_string(),
+            "0".to_string(),
+            last_update])?;
         Ok(())
     }
 
@@ -96,8 +104,8 @@ impl Database {
             "SELECT id, user_email, name, accumulative, streak, last_update FROM activity WHERE id = ?",
             [id],
             |row| {
-                let last_update_str: String = row.get(5)?;
-                let last_update = NaiveDateTime::parse_from_str(&last_update_str, "%Y-%m-%d %H:%M:%S.%f").unwrap();
+                let last_update_timestamp = row.get(5)?;
+                let last_update = NaiveDateTime::from_timestamp_opt(last_update_timestamp, 0).unwrap();
 
                 Ok(Activity {
                 id: row.get(0)?,
@@ -113,12 +121,30 @@ impl Database {
         //Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Custom Error")))
     }
 
-    //pub fn update_activity(&self, activity_update: &ActivityUpdate) -> Result<()> {
-        // get activity
-        // find new values
-        //self.connection.execute("UPDATE activity SET accumulative = ?, streak = ?, last_update = ? WHERE id = ?", [1,2])?;
-        //Ok(())
-    //}
+    pub fn update_activity(&self, activity_update: &ActivityUpdate) -> Result<()> {
+        let activity = self.get_activity(activity_update.id)?;
+        println!("activity: {:?}", activity);
+        println!("activity_update{:?}", activity_update);
+        let mut streak: u64 = activity.streak + 1;
+        if activity.last_update + Duration::days(2) < Utc::now().naive_utc() {
+            streak = 1;
+        }
+        let last_update = Utc::now().naive_utc().timestamp().to_string();
+
+        let accumulative = activity.accumulative + activity_update.duration;
+        println!("accumulative {}", accumulative);
+
+        self.connection.execute(
+            "UPDATE activity SET accumulative = ?, streak = ?, last_update = ? WHERE id = ?",
+            [
+                accumulative.to_string(),
+                streak.to_string(),
+                last_update,
+                activity_update.id.to_string(),
+            ],
+        )?;
+        Ok(())
+    }
 }
 
 pub fn get_database() -> Arc<Mutex<Database>> {
