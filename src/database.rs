@@ -40,21 +40,19 @@ pub struct ActivityUpdate {
 }
 
 pub struct Database {
-    pub connection: Connection,
+    pub conn: Connection,
 }
 
 impl Database {
     fn new() -> Self {
-        let connection = Connection::open("database.db").expect("Could not open the database");
-        Self { connection }
+        let conn = Connection::open("database.db").expect("Could not open the database");
+        Self { conn }
     }
 
     pub fn create_database(&self) {
-        self.connection
-            .execute("PRAGMA foreign_keys = ON", ())
-            .unwrap();
+        self.conn.execute("PRAGMA foreign_keys = ON", ()).unwrap();
 
-        self.connection
+        self.conn
             .execute(
                 "CREATE TABLE IF NOT EXISTS user (
             email TEXT PRIMARY KEY
@@ -63,7 +61,7 @@ impl Database {
             )
             .unwrap();
 
-        self.connection
+        self.conn
             .execute(
                 "CREATE TABLE IF NOT EXISTS activity (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +79,7 @@ impl Database {
     }
 
     pub fn insert_user(&self, user: &UserCreate) -> Result<()> {
-        self.connection
+        self.conn
             .execute("INSERT INTO user (email) VALUES (?1)", [user.email.clone()])?;
         Ok(())
     }
@@ -89,7 +87,7 @@ impl Database {
     pub fn insert_activity(&self, activity_create: &ActivityCreate) -> Result<()> {
         let last_update = Utc::now().naive_utc().timestamp().to_string();
 
-        self.connection.execute(
+        self.conn.execute(
             "INSERT INTO activity (user_email, name, accumulative, streak, last_update) VALUES (?1, ?2, ?3, ?4, ?5)",
             [activity_create.user_email.clone(),
             activity_create.name.clone(),
@@ -100,7 +98,7 @@ impl Database {
     }
 
     pub fn get_activity(&self, id: u64) -> std::result::Result<Activity, rusqlite::Error> {
-        let activity = self.connection.query_row(
+        let activity = self.conn.query_row(
             "SELECT id, user_email, name, accumulative, streak, last_update FROM activity WHERE id = ?",
             [id],
             |row| {
@@ -134,7 +132,7 @@ impl Database {
         let accumulative = activity.accumulative + activity_update.duration;
         println!("accumulative {}", accumulative);
 
-        self.connection.execute(
+        self.conn.execute(
             "UPDATE activity SET accumulative = ?, streak = ?, last_update = ? WHERE id = ?",
             [
                 accumulative.to_string(),
@@ -144,6 +142,26 @@ impl Database {
             ],
         )?;
         Ok(())
+    }
+
+    pub fn delete_activity(&self, id: u64) -> Result<()> {
+        match self.conn.execute("DELETE FROM activity WHERE id = ?", [id]) {
+            Ok(rows_afected) => {
+                if rows_afected > 0 {
+                    Ok(())
+                } else {
+                    Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Error",
+                    )))
+                }
+            }
+
+            Err(_) => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Error",
+            ))),
+        }
     }
 }
 
